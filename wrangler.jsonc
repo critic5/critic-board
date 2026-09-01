@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "critic-board",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-31",
+
+  // The static site. Everything here is served straight from Cloudflare's
+  // edge and is not billed as a Worker request.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Only the API goes through the Worker script.
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Where the board is stored. Paste the namespace id from
+  // Storage & Databases -> KV after you create the namespace.
+  "kv_namespaces": [
+    {
+      "binding": "BOARD_KV",
+      "id": "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
+    }
+  ]
+
+  // BOARD_KEY is deliberately NOT in this file. It's a secret — set it in the
+  // dashboard under Settings -> Variables and Secrets, or with:
+  //   npx wrangler secret put BOARD_KEY
+}

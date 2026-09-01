@@ -49,7 +49,13 @@ self.addEventListener('fetch', e => {
       return res;
     }).catch(async () => {
       const hit = await caches.match(e.request);
-      if (hit) return hit;
+      if (hit) {
+        // Flag it, so the app can say it's showing a stale board rather than
+        // looking live and only failing when an edit is attempted.
+        const h = new Headers(hit.headers);
+        h.set('X-Board-Cached', '1');
+        return new Response(hit.body, {status: hit.status, statusText: hit.statusText, headers: h});
+      }
       if (isData) {
         return new Response(
           JSON.stringify({error: 'offline'}),

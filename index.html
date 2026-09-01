@@ -181,6 +181,9 @@ function Denied(){ this.name = "Denied"; }
 // Thrown when the board changed on the other device since this one loaded it.
 function Stale(){ this.name = "Stale"; }
 
+// True when the last load came from the service worker cache, not the network.
+let fromCache = false;
+
 const Store = {
   async load(){
     const r = await fetch("/api/state", {
@@ -189,6 +192,12 @@ const Store = {
     });
     if(r.status === 401) throw new Denied();
     if(!r.ok) throw new Error("load failed");
+    // Set by the service worker when it served this from cache because the
+    // network was unreachable.
+    // Either the service worker told us it came from cache, or the device
+    // itself reports no connection. Both mean: this board may be stale.
+    fromCache = r.headers.get("X-Board-Cached") === "1"
+             || (typeof navigator !== "undefined" && navigator.onLine === false);
     return r.json();
   },
   async save(s){
@@ -596,7 +605,8 @@ document.addEventListener("visibilitychange", async () => {
   if(document.visibilityState !== "visible" || ui.edit || !state) return;
   try{
     state = await Store.load();
-    banner(""); render();
+    banner(fromCache ? "NO CONNECTION - SHOWING THE LAST BOARD THIS DEVICE SAW" : "");
+    render();
   }catch(err){
     if(err instanceof Denied){ Key.clear(); return lockScreen("Session expired. Enter the passphrase."); }
     banner("NO CONNECTION - SHOWING THE LAST BOARD THIS DEVICE SAW");
@@ -607,8 +617,13 @@ async function boot(){
   if(!Key.get()) return lockScreen("");
   try{
     state = await Store.load();
-    banner("");
-    document.getElementById("foot").textContent = "Synced. Same board on every device.";
+    if(fromCache){
+      banner("NO CONNECTION - SHOWING THE LAST BOARD THIS DEVICE SAW");
+      document.getElementById("foot").textContent = "Offline. Edits won't save until you're back.";
+    }else{
+      banner("");
+      document.getElementById("foot").textContent = "Synced. Same board on every device.";
+    }
   }catch(err){
     if(err instanceof Denied){
       Key.clear();
