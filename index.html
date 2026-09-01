@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Board</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#12151A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Board">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --base:#12151A; --panel:#1A1F26; --panel-2:#20262E; --line:#2C333D;
+  --od:#7A9A4E; --od-dim:#4A5D3A; --bone:#E6E3D8; --muted:#8894A0;
+  --amber:#C9963F; --rust:#B0503F; --steel:#5E7C99;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--base); color:var(--bone);
+  font-family:'Rajdhani',system-ui,sans-serif; font-size:16px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
+}
+.wrap{max-width:540px;margin:0 auto;padding:0 16px 64px}
+header{
+  padding:calc(env(safe-area-inset-top) + 20px) 0 14px;
+  border-bottom:1px solid var(--line); margin-bottom:16px;
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+}
+.mark{font-family:'Black Ops One',cursive;font-size:19px;letter-spacing:.04em}
+.mark span{color:var(--od)}
+.clock{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.09em;color:var(--muted)}
+.eyebrow{
+  font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:.18em;
+  color:var(--muted); display:flex; align-items:center; gap:10px; margin:26px 0 10px;
+}
+.eyebrow::after{content:'';flex:1;height:1px;background:var(--line)}
+.eyebrow .n{color:var(--od-dim)}
+
+.banner{
+  border:1px solid var(--amber); color:var(--amber); background:var(--panel-2);
+  font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:.1em;
+  padding:9px 13px; margin-bottom:14px; display:none;
+}
+.banner.on{display:block}
+
+.hero{
+  background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--od);
+  padding:16px 18px;
+}
+.hero.empty{border-left-color:var(--line)}
+.hero .cd{
+  font-family:'Bebas Neue',sans-serif; font-size:34px; line-height:1;
+  letter-spacing:.03em; color:var(--od); margin-bottom:6px;
+}
+.hero h1{font-size:21px;font-weight:700}
+.hero .mu{color:var(--bone);font-size:17px;font-weight:600;margin-top:2px}
+.hero .when{color:var(--muted);font-size:15px;margin-top:2px}
+.hero .none{color:var(--muted);font-size:16px;padding:6px 0}
+
+.strip{display:flex;gap:3px;margin-top:4px}
+.strip + .strip{margin-top:3px}
+.day{
+  flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);
+  padding:7px 2px 6px;text-align:center;position:relative;
+  cursor:pointer;font-family:inherit;color:inherit;
+}
+.day:focus-visible{outline:2px solid var(--od);outline-offset:1px}
+.day.today{border-color:var(--od-dim);background:var(--panel-2)}
+.day.sel{background:var(--od-dim);border-color:var(--od)}
+.day.sel .dw,.day.sel .dn{color:var(--base)}
+.day.has::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--od-dim)}
+.day.sel.has::after{background:var(--base)}
+.day .dw{font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.09em;color:var(--muted)}
+.day .dn{font-family:'Bebas Neue',sans-serif;font-size:16px;line-height:1.1;color:var(--bone)}
+.day .pips{display:flex;gap:2px;justify-content:center;height:5px;margin-top:3px}
+.pip{width:5px;height:5px;border-radius:50%}
+.pip.cast{background:var(--od)} .pip.play{background:var(--steel)} .pip.attend{background:var(--amber)}
+.pip.tent{opacity:.45}
+.legend{display:flex;gap:14px;margin-top:9px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:1px}
+
+.filterbar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel-2);border:1px solid var(--od-dim);padding:8px 12px;margin-bottom:7px;
+  font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.11em;color:var(--od);
+}
+.row{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);
+  padding:11px 13px;margin-bottom:5px;
+}
+.row.cast{border-left-color:var(--od)}
+.row.play{border-left-color:var(--steel)}
+.row.attend{border-left-color:var(--amber)}
+.row.tent{border-left-style:dashed}
+.row.rest{opacity:.5}
+.row .body{flex:1;min-width:0}
+.row .t{font-weight:600;font-size:16px}
+.row .sub{font-size:14px;color:var(--muted);margin-top:1px}
+.tag{
+  font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.11em;
+  padding:2px 7px;border:1px solid currentColor;white-space:nowrap;
+}
+.tag.cast{color:var(--od)} .tag.play{color:var(--steel)} .tag.attend{color:var(--amber)}
+.tag.fresh{color:var(--od-dim)} .tag.due{color:var(--amber)} .tag.stale{color:var(--rust)}
+.tag.rest{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+
+.btn{
+  font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.11em;
+  background:transparent;color:var(--muted);border:1px solid var(--line);
+  padding:5px 11px;cursor:pointer;
+}
+.btn.go{color:var(--od);border-color:var(--od-dim)}
+.btn.kill{color:var(--rust);border-color:var(--rust)}
+.btn:focus-visible{outline:2px solid var(--od);outline-offset:2px}
+.btn.mini{font-size:11px;padding:3px 8px}
+.addbar{display:flex;gap:7px;margin-top:9px}
+
+.ed{background:var(--panel-2);border:1px solid var(--od-dim);padding:14px;margin-bottom:8px}
+.ed label{
+  display:block;font-family:'Bebas Neue',sans-serif;font-size:12px;
+  letter-spacing:.13em;color:var(--muted);margin:11px 0 4px;
+}
+.ed label:first-child{margin-top:0}
+.ed input,.ed select{
+  width:100%;background:var(--base);border:1px solid var(--line);color:var(--bone);
+  font-family:'Rajdhani',sans-serif;font-size:16px;padding:8px 10px;
+}
+.ed input:focus,.ed select:focus{outline:none;border-color:var(--od)}
+.ed .duo{display:flex;gap:9px}.ed .duo>*{flex:1;min-width:0}
+.ed .acts{display:flex;gap:7px;margin-top:15px}
+.ed .err{color:var(--rust);font-size:14px;margin-top:7px;min-height:1px}
+.empty-note{color:var(--muted);font-size:15px;padding:10px 2px}
+.seg{display:flex}
+.seg button{
+  flex:1;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.1em;
+  background:var(--base);border:1px solid var(--line);color:var(--muted);
+  padding:8px 4px;cursor:pointer;
+}
+.seg button.on{background:var(--od-dim);color:var(--base);border-color:var(--od-dim)}
+.off-hd{
+  font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.14em;
+  color:var(--muted);cursor:pointer;padding:9px 0 5px;user-select:none;
+  border-top:1px solid var(--line);margin-top:12px;
+}
+footer{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="mark">THE <span>BOARD</span></div>
+    <div class="clock" id="clock"></div>
+  </header>
+  <div class="banner" id="banner"></div>
+  <div id="app"></div>
+  <footer id="foot">Loading&hellip;</footer>
+</div>
+
+<script>
+const ROLES = {cast:"CASTING", play:"PLAYING", attend:"ATTENDING"};
+let state = null, ui = {edit:null, showRest:false, day:null};
+
+// The passphrase lives only in this browser. It is sent with every request
+// and never written into the board itself.
+const Key = {
+  get(){ try{ return localStorage.getItem("board.key") || ""; }catch(e){ return ""; } },
+  set(v){ try{ localStorage.setItem("board.key", v); }catch(e){} },
+  clear(){ try{ localStorage.removeItem("board.key"); }catch(e){} }
+};
+
+// Thrown when the passphrase is missing or wrong, so callers can tell that
+// apart from "the phone has no signal".
+function Denied(){ this.name = "Denied"; }
+// Thrown when the board changed on the other device since this one loaded it.
+function Stale(){ this.name = "Stale"; }
+
+const Store = {
+  async load(){
+    const r = await fetch("/api/state", {
+      cache: "no-store",
+      headers: {"X-Board-Key": Key.get()}
+    });
+    if(r.status === 401) throw new Denied();
+    if(!r.ok) throw new Error("load failed");
+    return r.json();
+  },
+  async save(s){
+    const r = await fetch("/api/state", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Board-Key": Key.get(),
+        // Refuse the write if the stored copy has moved on since we loaded it.
+        "X-Board-Rev": String(s.rev == null ? 0 : s.rev)
+      },
+      body: JSON.stringify(s)
+    });
+    if(r.status === 401) throw new Denied();
+    if(r.status === 409) throw new Stale();
+    if(!r.ok) throw new Error("save failed");
+    // Server hands back the new revision so the next write lines up.
+    const out = await r.json();
+    if(out && typeof out.rev === "number") s.rev = out.rev;
+  }
+};
+
+function lockScreen(msg){
+  document.getElementById("app").innerHTML =
+    '<div class="ed">' +
+      '<label for="f-key">Board passphrase</label>' +
+      '<input id="f-key" type="password" autocomplete="current-password" ' +
+        'enterkeyhint="go" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022">' +
+      '<div class="acts"><button class="btn go" data-act="unlock">OPEN THE BOARD</button></div>' +
+      '<div class="err" id="f-err">' + esc(msg || "") + '</div>' +
+    '</div>';
+  document.getElementById("foot").textContent = "This phone stays signed in until you clear it.";
+  const f = document.getElementById("f-key");
+  f.addEventListener("keydown", e => { if(e.key === "Enter") unlock(); });
+  f.focus();
+}
+
+async function unlock(){
+  const v = document.getElementById("f-key").value.trim();
+  if(!v) return fail("Enter the passphrase.");
+  Key.set(v);
+  await boot();
+}
+
+function banner(msg){
+  const el = document.getElementById("banner");
+  el.textContent = msg || "";
+  el.classList.toggle("on", !!msg);
+}
+
+const uid = () => Math.random().toString(36).slice(2,9);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dayKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+
+function daysSince(iso){
+  if(!iso) return 999;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+function staleness(src){
+  if(src.season !== "in") return {cls:"rest", txt:"OFFSEASON"};
+  const d = daysSince(src.checked), c = src.cadence || 7;
+  if(d >= c*2) return {cls:"stale", txt:"STALE"};
+  if(d >= c) return {cls:"due", txt:"OVERDUE"};
+  return {cls:"fresh", txt:"CURRENT"};
+}
+function checkedLabel(iso){
+  const d = daysSince(iso);
+  if(d <= 0) return "checked today";
+  if(d === 1) return "checked yesterday";
+  return "checked " + d + "d ago";
+}
+function srcName(id){
+  const s = state.sources.find(x=>x.id===id);
+  return s ? s.name : "";
+}
+function upcoming(){
+  const now = Date.now();
+  return state.events
+    .filter(e => new Date(e.start).getTime() > now - 3600000)
+    .sort((a,b)=> new Date(a.start) - new Date(b.start));
+}
+function fmtWhen(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})
+    + " \u00b7 " + d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+}
+function countdown(iso){
+  let ms = new Date(iso).getTime() - Date.now();
+  if(ms <= 0) return "LIVE NOW";
+  const d = Math.floor(ms/86400000); ms -= d*86400000;
+  const h = Math.floor(ms/3600000); ms -= h*3600000;
+  const m = Math.floor(ms/60000);
+  if(d > 0) return d + "D " + h + "H";
+  if(h > 0) return h + "H " + m + "M";
+  return m + "M";
+}
+function matchup(e){
+  if(e.teamA && e.teamB) return e.teamA + " v " + e.teamB;
+  return e.teamA || e.teamB || "";
+}
+
+function render(){
+  if(!state) return;   // locked, or not loaded yet
+  const up = upcoming();
+  const next = up[0];
+  let h = "";
+
+  h += '<div class="hero' + (next ? "" : " empty") + '">';
+  if(next){
+    h += '<div class="cd">' + countdown(next.start) + '</div>'
+      + '<h1>' + esc(next.title) + '</h1>'
+      + (matchup(next) ? '<div class="mu">' + esc(matchup(next)) + '</div>' : '')
+      + '<div class="when">' + fmtWhen(next.start) + ' \u00b7 ' + ROLES[next.role]
+      + (next.source ? ' \u00b7 ' + esc(srcName(next.source)) : '')
+      + (next.status === "tentative" ? ' \u00b7 tentative' : '') + '</div>';
+  } else {
+    h += '<div class="none">Nothing on the board yet.</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="eyebrow">Horizon</div>';
+  const buckets = {};
+  up.forEach(e=>{
+    const k = dayKey(new Date(e.start));
+    (buckets[k] = buckets[k] || []).push(e);
+  });
+  for(let row=0; row<2; row++){
+    h += '<div class="strip">';
+    for(let i=row*7; i<row*7+7; i++){
+      const d = new Date(); d.setDate(d.getDate()+i);
+      const k = dayKey(d), evs = buckets[k] || [];
+      h += '<button type="button" class="day' + (i===0?" today":"")
+        + (ui.day===k?" sel":"") + (evs.length?" has":"")
+        + '" data-act="pick-day" data-k="' + k + '" aria-pressed="' + (ui.day===k) + '">'
+        + '<div class="dw">' + d.toLocaleDateString(undefined,{weekday:"short"}).slice(0,3).toUpperCase() + '</div>'
+        + '<div class="dn">' + d.getDate() + '</div><div class="pips">'
+        + evs.slice(0,3).map(e=>'<span class="pip ' + e.role + (e.status==="tentative"?" tent":"") + '"></span>').join("")
+        + '</div></button>';
+    }
+    h += '</div>';
+  }
+  h += '<div class="legend">'
+    + '<span><i style="background:var(--od)"></i>casting</span>'
+    + '<span><i style="background:var(--steel)"></i>playing</span>'
+    + '<span><i style="background:var(--amber)"></i>attending</span>'
+    + '<span>hollow = tentative</span></div>';
+
+  const shown = ui.day ? up.filter(e => dayKey(new Date(e.start)) === ui.day) : up;
+
+  h += '<div class="eyebrow">Commitments <span class="n">'
+    + (ui.day ? shown.length + " of " + up.length : up.length) + '</span></div>';
+
+  if(ui.day){
+    const d = new Date(ui.day + "T12:00:00");
+    h += '<div class="filterbar"><span>'
+      + d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}).toUpperCase()
+      + '</span><button class="btn mini" data-act="clear-day">SHOW ALL</button></div>';
+  }
+
+  if(ui.edit && ui.edit.type === "event" && !ui.edit.id) h += eventForm({});
+  if(!shown.length && !(ui.edit && ui.edit.type === "event")){
+    h += '<div class="empty-note">' + (ui.day ? "Nothing on this day yet." : "Nothing scheduled yet.") + '</div>';
+  }
+  shown.forEach(e=>{
+    if(ui.edit && ui.edit.type === "event" && ui.edit.id === e.id){ h += eventForm(e); return; }
+    h += '<div class="row ' + e.role + (e.status==="tentative"?" tent":"") + '">'
+      + '<div class="body"><div class="t">' + esc(e.title)
+      + (matchup(e) ? ' <span style="color:var(--muted);font-weight:400">\u00b7 ' + esc(matchup(e)) + '</span>' : '')
+      + '</div><div class="sub">' + fmtWhen(e.start)
+      + (e.source ? ' \u00b7 ' + esc(srcName(e.source)) : '')
+      + (e.note ? ' \u00b7 ' + esc(e.note) : '') + '</div></div>'
+      + '<div class="stack"><span class="tag ' + e.role + '">' + ROLES[e.role] + '</span>'
+      + '<button class="btn mini" data-act="edit-event" data-id="' + e.id + '">EDIT</button></div></div>';
+  });
+  if(!(ui.edit && ui.edit.type === "event")){
+    h += '<div class="addbar"><button class="btn go" data-act="new-event">+ ADD'
+      + (ui.day ? " ON THIS DAY" : " COMMITMENT") + '</button></div>';
+  }
+
+  const inSeason = state.sources.filter(s=>s.season === "in");
+  const resting  = state.sources.filter(s=>s.season !== "in");
+  const overdue  = inSeason.filter(s=>staleness(s).cls !== "fresh").length;
+
+  h += '<div class="eyebrow">Sources <span class="n">'
+    + (overdue ? overdue + " need a look" : "all current") + '</span></div>';
+  if(ui.edit && ui.edit.type === "source" && !ui.edit.id) h += sourceForm({});
+  inSeason.forEach(s=>{
+    h += (ui.edit && ui.edit.type==="source" && ui.edit.id===s.id) ? sourceForm(s) : sourceRow(s);
+  });
+
+  if(resting.length){
+    h += '<div class="off-hd" data-act="toggle-rest">' + (ui.showRest ? "\u25be" : "\u25b8")
+      + ' OFFSEASON &amp; DORMANT (' + resting.length + ')</div>';
+    if(ui.showRest) resting.forEach(s=>{
+      h += (ui.edit && ui.edit.type==="source" && ui.edit.id===s.id) ? sourceForm(s) : sourceRow(s);
+    });
+  }
+  if(!(ui.edit && ui.edit.type === "source")){
+    h += '<div class="addbar"><button class="btn" data-act="new-source">+ ADD SOURCE</button></div>';
+  }
+
+  document.getElementById("app").innerHTML = h;
+}
+
+function sourceRow(s){
+  const st = staleness(s);
+  return '<div class="row' + (s.season!=="in" ? " rest" : "") + '">'
+    + '<div class="body"><div class="t">' + esc(s.name) + '</div>'
+    + '<div class="sub">' + s.kind + ' \u00b7 every ' + s.cadence + 'd \u00b7 ' + checkedLabel(s.checked)
+    + (s.crcon && s.crcon !== "unknown" ? ' \u00b7 CRCON ' + s.crcon : '')
+    + (s.url ? ' \u00b7 ' + esc(s.url) : '') + '</div></div>'
+    + '<div class="stack"><span class="tag ' + st.cls + '">' + st.txt + '</span>'
+    + '<div style="display:flex;gap:5px">'
+    + (s.season === "in" ? '<button class="btn mini" data-act="mark" data-id="' + s.id + '">CHECKED</button>' : '')
+    + '<button class="btn mini" data-act="edit-source" data-id="' + s.id + '">EDIT</button>'
+    + '</div></div></div>';
+}
+
+function eventForm(e){
+  const isNew = !e.id;
+  let dv = "";
+  if(e.start){
+    const d = new Date(e.start), p = n => String(n).padStart(2,"0");
+    dv = d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes());
+  } else if(isNew && ui.day){
+    dv = ui.day + "T20:00";
+  }
+  return '<div class="ed">'
+    + '<label for="f-title">What is it</label>'
+    + '<input id="f-title" value="' + esc(e.title||"") + '" placeholder="Iron Canopy \u2014 Week 4">'
+    + '<label for="f-start">When</label>'
+    + '<input id="f-start" type="datetime-local" value="' + dv + '">'
+    + '<div class="duo"><div><label for="f-role">Your part</label><select id="f-role">'
+    + Object.keys(ROLES).map(r=>'<option value="'+r+'"'+(e.role===r?" selected":"")+'>'+ROLES[r]+'</option>').join("")
+    + '</select></div><div><label for="f-status">Locked in</label><select id="f-status">'
+    + '<option value="confirmed"' + (e.status!=="tentative"?" selected":"") + '>CONFIRMED</option>'
+    + '<option value="tentative"' + (e.status==="tentative"?" selected":"") + '>TENTATIVE</option>'
+    + '</select></div></div>'
+    + '<label for="f-source">League or community</label><select id="f-source"><option value="">\u2014 none \u2014</option>'
+    + state.sources.map(s=>'<option value="'+s.id+'"'+(e.source===s.id?" selected":"")+'>'+esc(s.name)+'</option>').join("")
+    + '</select>'
+    + '<label>Matchup</label><div class="duo">'
+    + '<input id="f-teamA" value="' + esc(e.teamA||"") + '" placeholder="Team A">'
+    + '<input id="f-teamB" value="' + esc(e.teamB||"") + '" placeholder="Team B">'
+    + '</div>'
+    + '<label for="f-note">Note</label>'
+    + '<input id="f-note" value="' + esc(e.note||"") + '" placeholder="co-cast with Wraith">'
+    + '<div class="err" id="f-err"></div>'
+    + '<div class="acts"><button class="btn go" data-act="save-event" data-id="' + (e.id||"") + '">SAVE</button>'
+    + '<button class="btn" data-act="cancel">CANCEL</button>'
+    + (isNew ? "" : '<button class="btn kill" data-act="del-event" data-id="' + e.id + '">DELETE</button>')
+    + '</div></div>';
+}
+
+function sourceForm(s){
+  const isNew = !s.id;
+  return '<div class="ed">'
+    + '<label for="f-name">Name</label>'
+    + '<input id="f-name" value="' + esc(s.name||"") + '" placeholder="Iron Canopy League">'
+    + '<label>Status</label><div class="seg">'
+    + '<button type="button" data-act="seg-season" data-v="in" class="' + (s.season!=="off"?"on":"") + '">IN SEASON</button>'
+    + '<button type="button" data-act="seg-season" data-v="off" class="' + (s.season==="off"?"on":"") + '">DORMANT</button>'
+    + '</div><input type="hidden" id="f-season" value="' + (s.season==="off"?"off":"in") + '">'
+    + '<div class="duo"><div><label for="f-kind">Type</label><select id="f-kind">'
+    + '<option value="league"' + (s.kind!=="community"?" selected":"") + '>LEAGUE</option>'
+    + '<option value="community"' + (s.kind==="community"?" selected":"") + '>COMMUNITY</option>'
+    + '</select></div><div><label for="f-cadence">Check every (days)</label>'
+    + '<input id="f-cadence" type="number" min="1" max="90" value="' + (s.cadence||7) + '"></div></div>'
+    + '<label for="f-crcon">Stats source</label><select id="f-crcon">'
+    + ["unknown","yes","no"].map(v=>'<option value="'+v+'"'+((s.crcon||"unknown")===v?" selected":"")+'>'
+      + (v==="unknown"?"NOT SURE YET":v==="yes"?"CRCON":"NO CRCON") + '</option>').join("")
+    + '</select>'
+    + '<label for="f-url">Where to look</label>'
+    + '<input id="f-url" value="' + esc(s.url||"") + '" placeholder="discord #schedule, or a link">'
+    + '<div class="err" id="f-err"></div>'
+    + '<div class="acts"><button class="btn go" data-act="save-source" data-id="' + (s.id||"") + '">SAVE</button>'
+    + '<button class="btn" data-act="cancel">CANCEL</button>'
+    + (isNew ? "" : '<button class="btn kill" data-act="del-source" data-id="' + s.id + '">DELETE</button>')
+    + '</div></div>';
+}
+
+function fail(msg){
+  const el = document.getElementById("f-err");
+  if(el) el.textContent = msg;
+}
+
+async function commit(){
+  try{
+    await Store.save(state);
+    banner("");
+  }catch(err){
+    if(err instanceof Denied){
+      Key.clear();
+      return lockScreen("That passphrase was rejected. Enter it again.");
+    }
+    if(err instanceof Stale){
+      // Someone edited on the other device. Pull theirs rather than
+      // silently overwriting it.
+      try{
+        state = await Store.load();
+        banner("BOARD CHANGED ON YOUR OTHER DEVICE - RELOADED, MAKE THAT EDIT AGAIN");
+      }catch(e){
+        banner("BOARD CHANGED ELSEWHERE AND THIS DEVICE CAN'T REFRESH");
+      }
+      return render();
+    }
+    banner("NO CONNECTION - THAT CHANGE DIDN'T SAVE");
+  }
+  render();
+}
+
+document.addEventListener("click", async ev => {
+  const b = ev.target.closest("[data-act]");
+  if(!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+
+  if(act === "pick-day"){
+    ui.day = (ui.day === b.dataset.k) ? null : b.dataset.k;
+    ui.edit = null; return render();
+  }
+  if(act === "clear-day"){ ui.day = null; return render(); }
+  if(act === "unlock"){ return unlock(); }
+
+  if(act === "new-event"){ ui.edit = {type:"event", id:null}; return render(); }
+  if(act === "edit-event"){ ui.edit = {type:"event", id}; return render(); }
+  if(act === "new-source"){ ui.edit = {type:"source", id:null}; return render(); }
+  if(act === "edit-source"){ ui.edit = {type:"source", id}; return render(); }
+  if(act === "cancel"){ ui.edit = null; return render(); }
+  if(act === "toggle-rest"){ ui.showRest = !ui.showRest; return render(); }
+
+  if(act === "seg-season"){
+    document.getElementById("f-season").value = b.dataset.v;
+    b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x === b));
+    return;
+  }
+
+  if(act === "mark"){
+    const s = state.sources.find(x=>x.id===id);
+    if(s) s.checked = new Date().toISOString();
+    return commit();
+  }
+
+  if(act === "save-event"){
+    const title = document.getElementById("f-title").value.trim();
+    const start = document.getElementById("f-start").value;
+    if(!title) return fail("Give it a name so you'll recognise it on the board.");
+    if(!start) return fail("Set a date and time.");
+    const rec = {
+      title,
+      start: new Date(start).toISOString(),
+      role: document.getElementById("f-role").value,
+      status: document.getElementById("f-status").value,
+      source: document.getElementById("f-source").value,
+      teamA: document.getElementById("f-teamA").value.trim(),
+      teamB: document.getElementById("f-teamB").value.trim(),
+      note: document.getElementById("f-note").value.trim()
+    };
+    const existing = id ? state.events.find(x=>x.id===id) : null;
+    if(existing) Object.assign(existing, rec);
+    else state.events.push(Object.assign({id:uid()}, rec));
+    ui.edit = null; return commit();
+  }
+
+  if(act === "save-source"){
+    const name = document.getElementById("f-name").value.trim();
+    if(!name) return fail("Every source needs a name.");
+    const rec = {
+      name,
+      season: document.getElementById("f-season").value,
+      kind: document.getElementById("f-kind").value,
+      cadence: Math.max(1, parseInt(document.getElementById("f-cadence").value) || 7),
+      crcon: document.getElementById("f-crcon").value,
+      url: document.getElementById("f-url").value.trim()
+    };
+    const existing = id ? state.sources.find(x=>x.id===id) : null;
+    if(existing) Object.assign(existing, rec);
+    else state.sources.push(Object.assign({id:uid(), checked:new Date().toISOString()}, rec));
+    ui.edit = null; return commit();
+  }
+
+  if(act === "del-event"){
+    state.events = state.events.filter(x=>x.id!==id);
+    ui.edit = null; return commit();
+  }
+  if(act === "del-source"){
+    state.sources = state.sources.filter(x=>x.id!==id);
+    state.events.forEach(e=>{ if(e.source===id) e.source=""; });
+    ui.edit = null; return commit();
+  }
+});
+
+function tick(){
+  const c = document.getElementById("clock");
+  if(c) c.textContent = new Date()
+    .toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"}).toUpperCase();
+  if(!state) return;
+  const cd = document.querySelector(".hero .cd");
+  const n = upcoming()[0];
+  if(cd && n) cd.textContent = countdown(n.start);
+}
+
+// Re-pull on foreground so a board edited at the desktop is current
+// when you pick the phone back up.
+document.addEventListener("visibilitychange", async () => {
+  if(document.visibilityState !== "visible" || ui.edit || !state) return;
+  try{
+    state = await Store.load();
+    banner(""); render();
+  }catch(err){
+    if(err instanceof Denied){ Key.clear(); return lockScreen("Session expired. Enter the passphrase."); }
+    banner("NO CONNECTION - SHOWING THE LAST BOARD THIS DEVICE SAW");
+  }
+});
+
+async function boot(){
+  if(!Key.get()) return lockScreen("");
+  try{
+    state = await Store.load();
+    banner("");
+    document.getElementById("foot").textContent = "Synced. Same board on every device.";
+  }catch(err){
+    if(err instanceof Denied){
+      Key.clear();
+      return lockScreen("That passphrase was rejected. Enter it again.");
+    }
+    // No signal. The service worker may still have a copy from last time.
+    banner("NO CONNECTION - SHOWING THE LAST BOARD THIS DEVICE SAW");
+    document.getElementById("foot").textContent = "Offline. Edits won't save until you're back.";
+    state = state || {sources:[], events:[], rev:0};
+  }
+  render();
+}
+
+(function(){
+  tick(); setInterval(tick, 30000);
+  boot();
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+})();
+</script>
+</html>
